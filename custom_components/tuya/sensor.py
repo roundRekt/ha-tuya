@@ -382,6 +382,24 @@ SENSORS: dict[DeviceCategory, tuple[TuyaSensorEntityDescription, ...]] = {
             device_class=SensorDeviceClass.HUMIDITY,
             state_class=SensorStateClass.MEASUREMENT,
         ),
+        TuyaSensorEntityDescription(
+            key=DPCode.TEMP_CURRENT_EXTERNAL_1,
+            translation_key="temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        TuyaSensorEntityDescription(
+            key=DPCode.TEMP_CURRENT,
+            translation_key="temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        TuyaSensorEntityDescription(
+            key=DPCode.HUMIDITY_CURRENT,
+            translation_key="humidity",
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
     ),
     DeviceCategory.CWJWQ: (
         TuyaSensorEntityDescription(
@@ -2269,8 +2287,40 @@ class TuyaSensorEntity(TuyaEntity, SensorEntity):
         if val is None:
             return None
 
-        # Auto-scale temperature and humidity when Tuya API returns unscaled integer values
+        # Handle Tuya invalid/sentinel values (e.g. 32767, 0x7fff, or scaled 3276.7)
         if isinstance(val, (int, float)):
+            if val >= 30000 or val in (32767, 3276.7):
+                val = None
+                if self.entity_description.device_class == SensorDeviceClass.TEMPERATURE:
+                    for alt_key in (
+                        DPCode.TEMP_CURRENT_EXTERNAL_1,
+                        DPCode.TEMP_CURRENT_EXTERNAL,
+                        DPCode.TEMP_CURRENT,
+                        DPCode.TEMP,
+                    ):
+                        alt_val = self.device.status.get(alt_key)
+                        if alt_val is not None and alt_val < 30000:
+                            val = alt_val
+                            if alt_key in self.device.status_range:
+                                spec = self.device.status_range[alt_key]
+                                if getattr(spec, "scale", 0) == 1 and val > 100:
+                                    val = round(val / 10.0, 1)
+                            break
+                elif self.entity_description.device_class == SensorDeviceClass.HUMIDITY:
+                    for alt_key in (
+                        DPCode.HUMIDITY_CURRENT,
+                        DPCode.HUMIDITY_VALUE,
+                        DPCode.HUMIDITY,
+                    ):
+                        alt_val = self.device.status.get(alt_key)
+                        if alt_val is not None and alt_val < 30000:
+                            val = alt_val
+                            break
+
+                if val is None:
+                    return None
+
+            # Auto-scale temperature and humidity when Tuya API returns unscaled integer values
             if self.entity_description.device_class == SensorDeviceClass.HUMIDITY:
                 if val > 1000:
                     val = round(val / 100.0, 1)

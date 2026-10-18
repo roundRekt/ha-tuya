@@ -147,7 +147,19 @@ class TuyaHumidifierEntity(TuyaEntity, HumidifierEntity):
     @override
     def current_humidity(self) -> int | None:
         """Return the current humidity."""
-        return self._read_wrapper(self._current_humidity_wrapper)
+        val = self._read_wrapper(self._current_humidity_wrapper)
+        if val is None or val >= 30000 or val in (32767, 3276.7):
+            for alt_key in (DPCode.HUMIDITY_CURRENT, DPCode.HUMIDITY_VALUE, DPCode.HUMIDITY):
+                alt_val = self.device.status.get(alt_key)
+                if alt_val is not None and alt_val < 30000:
+                    val = alt_val
+                    break
+            else:
+                return None if val is not None and (val >= 30000 or val in (32767, 3276.7)) else val
+
+        if val is not None and val > 100:
+            val = int(round(val / 10.0))
+        return val
 
     @override
     async def async_turn_on(self, **kwargs: Any) -> None:

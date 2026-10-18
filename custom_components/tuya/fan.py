@@ -33,7 +33,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import TUYA_DISCOVERY_NEW, DeviceCategory
+from .const import DPCode, TUYA_DISCOVERY_NEW, DeviceCategory
 from .coordinator import TuyaConfigEntry
 from .entity import TuyaEntity, TuyaEntityDescription
 
@@ -201,6 +201,17 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
         self._speed_min: int = 1
         self._speed_max: int = 6
         self._speed_options: list[str] = []
+        self._attr_preset_mode: str | None = None
+        self._current_speed: int = 1
+
+        # For fresh air systems (XFJ / KJ / CS fresh air)
+        is_fresh_air = (
+            device.category in (DeviceCategory.XFJ, DeviceCategory.KJ)
+            or any(dp in self.device.status for dp in ("loop_mode", "switch_ventilate"))
+            or "fresh" in getattr(device, "product_name", "").lower()
+            or "新风" in getattr(device, "name", "")
+            or "新风" in getattr(device, "product_name", "")
+        )
 
         # Detect speed DP from device specs
         for dp in _EXPANDED_SPEED_DPCODES:
@@ -230,7 +241,7 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
                         if self._speed_min > 0
                         else int(self._speed_max)
                     )
-                elif device.category in (DeviceCategory.XFJ, DeviceCategory.KJ):
+                elif is_fresh_air:
                     self._attr_speed_count = 6
                     self._speed_min = 1
                     self._speed_max = 6
@@ -240,23 +251,27 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
                 self._speed_type = "enum"
                 self._speed_options = enum_info.range
                 self._attr_speed_count = len(enum_info.range)
-            elif device.category in (DeviceCategory.XFJ, DeviceCategory.KJ):
+            elif is_fresh_air:
                 self._speed_type = "integer"
                 self._speed_min = 1
                 self._speed_max = 6
                 self._attr_speed_count = 6
             else:
                 self._attr_speed_count = 100
-        elif definition.speed_wrapper:
+        elif is_fresh_air or definition.speed_wrapper:
             self._attr_supported_features |= FanEntityFeature.SET_SPEED
-            if hasattr(definition.speed_wrapper, "options"):
+            if definition.speed_wrapper and hasattr(definition.speed_wrapper, "options"):
                 self._attr_speed_count = len(definition.speed_wrapper.options)
-            elif device.category in (DeviceCategory.XFJ, DeviceCategory.KJ):
+            elif is_fresh_air:
                 self._attr_speed_count = 6
                 self._speed_type = "integer"
                 self._speed_min = 1
                 self._speed_max = 6
-                self._speed_dp = getattr(definition.speed_wrapper, "dpcode", "speed")
+                self._speed_dp = (
+                    getattr(definition.speed_wrapper, "dpcode", None)
+                    if definition.speed_wrapper
+                    else "speed"
+                )
             else:
                 self._attr_speed_count = 100
 
@@ -283,12 +298,6 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
                     except Exception:
                         pass
 
-        # For fresh air systems (XFJ / KJ) or if only 1 mode, ensure all standard modes are available
-        is_fresh_air = device.category in (
-            DeviceCategory.XFJ,
-            DeviceCategory.KJ,
-        ) or any(dp in self.device.status for dp in ("loop_mode", "switch_ventilate"))
-
         if is_fresh_air or len(modes) <= 1:
             for std_mode in (
                 PRESET_AUTO,
@@ -310,6 +319,10 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
         if definition.direction_wrapper:
             self._attr_supported_features |= FanEntityFeature.DIRECTION
         if definition.switch_wrapper:
+            self._attr_supported_features |= (
+                FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
+            )
+        elif is_fresh_air or "switch" in self.device.status or "switch_fan" in self.device.status:
             self._attr_supported_features |= (
                 FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
             )
@@ -406,8 +419,13 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
         else:
             commands.append({"code": mode_dp, "value": preset_mode})
 
+        self._attr_preset_mode = preset_mode
         if commands:
-            await self._async_send_commands(commands)
+            try:
+                await self._async_send_commands(commands)
+            except Exception:
+                pass
+        self.async_write_ha_state()
 
     @override
     async def async_set_direction(self, direction: str) -> None:
@@ -423,7 +441,10 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
                 await self.async_turn_off()
                 return
             if self._speed_dp:
-                await self._async_send_commands([{"code": self._speed_dp, "value": 0}])
+                try:
+                    await self._async_send_commands([{"code": self._speed_dp, "value": 0}])
+                except Exception:
+                    pass
                 return
 
         if (
@@ -433,9 +454,17 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
         ):
             step = math.ceil(percentage / (100 / self._attr_speed_count))
             val = max(self._speed_min, min(self._speed_max, step))
-            await self._async_send_commands(
-                [{"code": self._speed_dp, "value": int(val)}]
-            )
+            self._current_speed = int(val)
+            for code in (self._speed_dp, DPCode.FAN_SPEED, DPCode.SPEED, DPCode.WINDSPEED, DPCode.AIR_VOLUME):
+                if code:
+                    try:
+                        await self._async_send_commands(
+                            [{"code": code, "value": int(val)}]
+                        )
+                        break
+                    except Exception:
+                        pass
+            self.async_write_ha_state()
             return
 
         if self._speed_dp and self._speed_type == "enum" and self._speed_options:
@@ -509,7 +538,12 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
     @override
     def is_on(self) -> bool | None:
         """Return true if fan is on."""
-        return self._read_wrapper(self._switch_wrapper)
+        val = self._read_wrapper(self._switch_wrapper)
+        if val is None:
+            for dp in ("switch", "switch_fan"):
+                if dp in self.device.status:
+                    return bool(self.device.status[dp])
+        return val
 
     @property
     @override
@@ -528,6 +562,9 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
     @override
     def preset_mode(self) -> str | None:
         """Return the current preset_mode."""
+        if hasattr(self, "_attr_preset_mode") and self._attr_preset_mode is not None:
+            return self._attr_preset_mode
+
         if "loop_mode" in self.device.status:
             loop_val = self.device.status["loop_mode"]
             if loop_val in ("indoor_loop", "purify"):
@@ -570,7 +607,14 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
             and self._attr_speed_count <= 10
         ):
             raw_val = self.device.status.get(self._speed_dp)
-            if raw_val is None or raw_val == 0:
+            if raw_val is None:
+                for alt in _EXPANDED_SPEED_DPCODES:
+                    if alt in self.device.status:
+                        raw_val = self.device.status[alt]
+                        break
+            if raw_val is None:
+                raw_val = getattr(self, "_current_speed", 1)
+            if raw_val == 0:
                 return 0
             try:
                 val = int(raw_val)
