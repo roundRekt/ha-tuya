@@ -40,6 +40,7 @@ from .entity import TuyaEntity, TuyaEntityDescription
 PRESET_AUTO = "auto"
 PRESET_PURIFY = "purify"
 PRESET_VENTILATION = "ventilation"
+PRESET_DEHUMIDIFY = "dehumidify"
 PRESET_SLEEP = "sleep"
 PRESET_MANUAL = "manual"
 
@@ -298,13 +299,19 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
                     except Exception:
                         pass
 
-        if is_fresh_air or len(modes) <= 1:
+        if is_fresh_air:
+            self._attr_translation_key = "fresh_air"
+            modes = [
+                PRESET_DEHUMIDIFY,
+                PRESET_PURIFY,
+                PRESET_VENTILATION,
+                PRESET_AUTO,
+            ]
+        elif len(modes) <= 1:
             for std_mode in (
                 PRESET_AUTO,
                 PRESET_PURIFY,
                 PRESET_VENTILATION,
-                PRESET_SLEEP,
-                PRESET_MANUAL,
             ):
                 if std_mode not in modes:
                     modes.append(std_mode)
@@ -412,6 +419,8 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
                 "ventilation",
             )
             commands.append({"code": mode_dp, "value": target})
+        elif preset_mode == PRESET_DEHUMIDIFY:
+            commands.append({"code": mode_dp, "value": "dehumidify"})
         elif preset_mode == PRESET_SLEEP:
             commands.append({"code": mode_dp, "value": "sleep"})
         elif preset_mode == PRESET_MANUAL:

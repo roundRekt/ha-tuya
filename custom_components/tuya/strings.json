@@ -175,10 +175,26 @@
               "auto": "Auto",
               "purify": "Purify",
               "ventilation": "Ventilation",
+              "dehumidify": "Dehumidify",
               "sleep": "Sleep",
               "manual": "Manual",
               "indoor_loop": "Indoor loop",
               "outdoor_loop": "Outdoor loop"
+            }
+          }
+        }
+      }
+    },
+    "humidifier": {
+      "dehumidifier": {
+        "name": "Dehumidifier",
+        "state_attributes": {
+          "mode": {
+            "state": {
+              "auto": "Auto",
+              "purify": "Purify",
+              "ventilation": "Ventilation",
+              "dehumidify": "Dehumidify"
             }
           }
         }

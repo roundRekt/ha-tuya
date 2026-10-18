@@ -31,6 +31,18 @@
   },
   "entity": {
     "fan": {
+      "_": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "auto": "自动",
+              "purify": "净化",
+              "ventilation": "通风",
+              "dehumidify": "除湿"
+            }
+          }
+        }
+      },
       "fresh_air": {
         "name": "新风机",
         "state_attributes": {
@@ -39,10 +51,38 @@
               "auto": "自动",
               "purify": "净化",
               "ventilation": "通风",
+              "dehumidify": "除湿",
               "sleep": "睡眠",
               "manual": "手动",
               "indoor_loop": "内循环",
               "outdoor_loop": "外循环"
+            }
+          }
+        }
+      }
+    },
+    "humidifier": {
+      "_": {
+        "state_attributes": {
+          "mode": {
+            "state": {
+              "auto": "自动",
+              "purify": "净化",
+              "ventilation": "通风",
+              "dehumidify": "除湿"
+            }
+          }
+        }
+      },
+      "dehumidifier": {
+        "name": "除湿机",
+        "state_attributes": {
+          "mode": {
+            "state": {
+              "auto": "自动",
+              "purify": "净化",
+              "ventilation": "通风",
+              "dehumidify": "除湿"
             }
           }
         }
