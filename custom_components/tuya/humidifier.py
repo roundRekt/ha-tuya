@@ -168,14 +168,14 @@ class TuyaHumidifierEntity(TuyaEntity, HumidifierEntity):
     @override
     def mode(self) -> str | None:
         """Return the current mode."""
+        if getattr(self, "_attr_mode", None) is not None:
+            return self._attr_mode
         raw = self._read_wrapper(self._mode_wrapper)
         if raw is None:
             for dp in ("mode", "work_mode"):
                 if dp in self.device.status:
                     raw = self.device.status[dp]
                     break
-        if raw is None and hasattr(self, "_attr_mode"):
-            return self._attr_mode
         return raw
 
     @property

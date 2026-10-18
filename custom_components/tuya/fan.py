@@ -467,7 +467,7 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
             and self._speed_type == "integer"
             and self._attr_speed_count <= 10
         ):
-            step = math.ceil(percentage / (100 / self._attr_speed_count))
+            step = round(percentage / (100 / self._attr_speed_count))
             val = max(self._speed_min, min(self._speed_max, step))
             self._current_speed = int(val)
             for code in (self._speed_dp, DPCode.FAN_SPEED, DPCode.SPEED, DPCode.WINDSPEED, DPCode.AIR_VOLUME):
@@ -483,8 +483,9 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
             return
 
         if self._speed_dp and self._speed_type == "enum" and self._speed_options:
-            step = math.ceil(percentage / (100 / self._attr_speed_count))
-            idx = max(0, min(len(self._speed_options) - 1, step - 1))
+            step = round(percentage / (100 / self._attr_speed_count))
+            val = max(1, min(len(self._speed_options), step))
+            idx = val - 1
             await self._async_send_commands(
                 [{"code": self._speed_dp, "value": self._speed_options[idx]}]
             )
@@ -524,12 +525,14 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
                 and self._speed_type == "integer"
                 and self._attr_speed_count <= 10
             ):
-                step = math.ceil(percentage / (100 / self._attr_speed_count))
+                step = round(percentage / (100 / self._attr_speed_count))
                 val = max(self._speed_min, min(self._speed_max, step))
+                self._current_speed = int(val)
                 commands.append({"code": self._speed_dp, "value": int(val)})
             elif self._speed_dp and self._speed_type == "enum" and self._speed_options:
-                step = math.ceil(percentage / (100 / self._attr_speed_count))
-                idx = max(0, min(len(self._speed_options) - 1, step - 1))
+                step = round(percentage / (100 / self._attr_speed_count))
+                val = max(1, min(len(self._speed_options), step))
+                idx = val - 1
                 commands.append(
                     {"code": self._speed_dp, "value": self._speed_options[idx]}
                 )
