@@ -1,5 +1,33 @@
 {
   "entity": {
+    "fan": {
+      "fresh_air": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "auto": "mdi:refresh-auto",
+              "dehumidify": "mdi:water-percent",
+              "purify": "mdi:air-filter",
+              "ventilation": "mdi:fan"
+            }
+          }
+        }
+      }
+    },
+    "humidifier": {
+      "dehumidifier": {
+        "state_attributes": {
+          "mode": {
+            "state": {
+              "auto": "mdi:refresh-auto",
+              "dehumidify": "mdi:water-percent",
+              "purify": "mdi:air-filter",
+              "ventilation": "mdi:fan"
+            }
+          }
+        }
+      }
+    },
     "binary_sensor": {
       "carbon_dioxide": {
         "default": "mdi:molecule-co2"

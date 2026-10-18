@@ -299,7 +299,10 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
                     except Exception:
                         pass
 
-        if is_fresh_air:
+        if device.category == DeviceCategory.CS:
+            # 除湿机类别的风扇实体仅保留转速与开关调节，运行模式统一由除湿机(humidifier)实体负责
+            modes = []
+        elif is_fresh_air:
             self._attr_translation_key = "fresh_air"
             modes = [
                 PRESET_DEHUMIDIFY,
@@ -337,6 +340,9 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
     @override
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode of the fan."""
+        if not (self._attr_supported_features & FanEntityFeature.PRESET_MODE):
+            return
+
         commands: list[dict[str, Any]] = []
 
         mode_dp = next(
@@ -571,6 +577,9 @@ class TuyaFanEntity(TuyaEntity, FanEntity):
     @override
     def preset_mode(self) -> str | None:
         """Return the current preset_mode."""
+        if not (self._attr_supported_features & FanEntityFeature.PRESET_MODE):
+            return None
+
         if hasattr(self, "_attr_preset_mode") and self._attr_preset_mode is not None:
             return self._attr_preset_mode
 

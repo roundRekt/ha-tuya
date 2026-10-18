@@ -168,9 +168,15 @@ class TuyaHumidifierEntity(TuyaEntity, HumidifierEntity):
     @override
     def mode(self) -> str | None:
         """Return the current mode."""
-        if hasattr(self, "_attr_mode") and self._attr_mode is not None:
+        raw = self._read_wrapper(self._mode_wrapper)
+        if raw is None:
+            for dp in ("mode", "work_mode"):
+                if dp in self.device.status:
+                    raw = self.device.status[dp]
+                    break
+        if raw is None and hasattr(self, "_attr_mode"):
             return self._attr_mode
-        return self._read_wrapper(self._mode_wrapper)
+        return raw
 
     @property
     @override
@@ -257,12 +263,40 @@ class TuyaHumidifierEntity(TuyaEntity, HumidifierEntity):
     async def async_set_mode(self, mode: str) -> None:
         """Set new target preset mode."""
         self._attr_mode = mode
-        commands = [{"code": "mode", "value": mode}]
-        try:
-            if self._mode_wrapper is not None:
+        mode_dp = next(
+            (
+                dp
+                for dp in ("mode", "work_mode")
+                if dp in self.device.status
+                or dp in self.device.function
+                or dp in self.device.status_range
+            ),
+            "mode",
+        )
+        commands: list[dict[str, Any]] = [{"code": mode_dp, "value": mode}]
+        if "loop_mode" in self.device.status or "loop_mode" in self.device.function:
+            if mode == "auto":
+                commands.append({"code": "loop_mode", "value": "auto"})
+            elif mode == "purify":
+                commands.append({"code": "loop_mode", "value": "indoor_loop"})
+            elif mode == "ventilation":
+                commands.append({"code": "loop_mode", "value": "outdoor_loop"})
+        if "switch_ventilate" in self.device.status or "switch_ventilate" in self.device.function:
+            if mode == "purify":
+                commands.append({"code": "switch_ventilate", "value": False})
+            elif mode == "ventilation":
+                commands.append({"code": "switch_ventilate", "value": True})
+
+        success = False
+        if self._mode_wrapper is not None:
+            try:
                 await self._async_send_wrapper_updates(self._mode_wrapper, mode)
-            else:
+                success = True
+            except Exception:
+                success = False
+        if not success:
+            try:
                 await self._async_send_commands(commands)
-        except Exception:
-            pass
+            except Exception:
+                pass
         self.async_write_ha_state()
