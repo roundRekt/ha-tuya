@@ -1,0 +1,160 @@
+{
+  "config": {
+    "error": {
+      "invalid_auth": "身份验证无效",
+      "login_error": "登录错误 ({code}): {msg}"
+    },
+    "step": {
+      "reauth_confirm": {
+        "description": "您的智能生活或涂鸦智能账号需要重新认证。\n\n选择**提交**以获取二维码并使用 App 扫描。",
+        "title": "重新认证"
+      },
+      "reauth_user_code": {
+        "data": {
+          "user_code": "用户码"
+        },
+        "description": "涂鸦集成现已采用改进的登录方式。要使用智能生活或涂鸦智能账号重新认证，请输入您的用户码。\n\n您可以在智能生活 App 或涂鸦智能 App 的**我的** > **设置** > **账号与安全**中找到**用户码**。用户码区分大小写，请务必准确输入。"
+      },
+      "scan": {
+        "data": {
+          "QR": "二维码"
+        },
+        "description": "请使用智能生活 App 或涂鸦智能 App 扫描以下二维码以完成登录。\n\n在 App 中确认后继续下一步。"
+      },
+      "user": {
+        "data": {
+          "user_code": "用户码"
+        },
+        "description": "请输入您的智能生活或涂鸦智能用户码。\n\n您可以在智能生活 App 或涂鸦智能 App 的**我的** > **设置** > **账号与安全**中找到**用户码**。用户码区分大小写，请务必准确输入。"
+      }
+    }
+  },
+  "entity": {
+    "fan": {
+      "fresh_air": {
+        "name": "新风机",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "auto": "自动",
+              "purify": "净化",
+              "ventilation": "通风",
+              "sleep": "睡眠",
+              "manual": "手动",
+              "indoor_loop": "内循环",
+              "outdoor_loop": "外循环"
+            }
+          }
+        }
+      }
+    },
+    "select": {
+      "loop_mode": {
+        "name": "循环模式",
+        "state": {
+          "indoor_loop": "内循环",
+          "outdoor_loop": "外循环",
+          "auto": "自动"
+        }
+      },
+      "countdown": {
+        "name": "定时",
+        "state": {
+          "1h": "1 小时",
+          "2h": "2 小时",
+          "3h": "3 小时",
+          "4h": "4 小时",
+          "5h": "5 小时",
+          "6h": "6 小时",
+          "cancel": "取消"
+        }
+      },
+      "mode": {
+        "name": "工作模式"
+      }
+    },
+    "switch": {
+      "switch": {
+        "name": "开关"
+      },
+      "switch_ventilate": {
+        "name": "通风开关"
+      },
+      "anion": {
+        "name": "负离子"
+      },
+      "child_lock": {
+        "name": "童锁"
+      },
+      "filter_cartridge_reset": {
+        "name": "重置滤芯"
+      }
+    },
+    "sensor": {
+      "air_quality": {
+        "name": "空气质量",
+        "state": {
+          "good": "优",
+          "great": "良",
+          "mild": "轻度污染",
+          "severe": "重度污染"
+        }
+      },
+      "air_quality_index": {
+        "name": "空气质量等级",
+        "state": {
+          "level_1": "1级",
+          "level_2": "2级",
+          "level_3": "3级",
+          "level_4": "4级",
+          "level_5": "5级",
+          "level_6": "6级"
+        }
+      },
+      "filter_life": {
+        "name": "滤网剩余寿命"
+      },
+      "filter": {
+        "name": "滤网寿命"
+      },
+      "formaldehyde": {
+        "name": "甲醛"
+      },
+      "pm25": {
+        "name": "PM2.5"
+      },
+      "co2": {
+        "name": "二氧化碳"
+      },
+      "voc": {
+        "name": "VOC"
+      },
+      "tvoc": {
+        "name": "TVOC"
+      },
+      "eco2": {
+        "name": "eCO2"
+      },
+      "temperature": {
+        "name": "温度"
+      },
+      "humidity": {
+        "name": "湿度"
+      }
+    },
+    "binary_sensor": {
+      "filter_cleaning": {
+        "name": "滤网清洁"
+      },
+      "temp_error": {
+        "name": "温度故障"
+      },
+      "motor_fault": {
+        "name": "电机故障"
+      },
+      "cover_off": {
+        "name": "开盖保护"
+      }
+    }
+  }
+}
