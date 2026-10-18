@@ -3,7 +3,11 @@
   "name": "Tuya",
   "version": "2024.10.1",
   "categories": ["hubs_protocols.smart_home_hubs"],
-  "codeowners": ["@Tuya", "@zlinoliver"],
+  "codeowners": [
+    "@Tuya",
+    "@zlinoliver",
+    "@roundRekt"
+  ],
   "config_flow": true,
   "dependencies": ["ffmpeg"],
   "dhcp": [

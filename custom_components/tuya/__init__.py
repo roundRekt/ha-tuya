@@ -34,7 +34,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: TuyaConfigEntry) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: TuyaConfigEntry) -> bool:
     """Async setup hass config entry."""
     listener = DeviceListener(hass, entry)
     await hass.async_add_executor_job(listener.initialize)
@@ -66,6 +66,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: TuyaConfigEntry) -> None
     # So the subscription is here
     await hass.async_add_executor_job(manager.refresh_mq)
 
+    return True
+
 
 async def cleanup_device_registry(
     hass: HomeAssistant, device_manager: Manager, entry: TuyaConfigEntry
@@ -81,14 +83,22 @@ async def cleanup_device_registry(
                 break
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: TuyaConfigEntry) -> None:
+async def async_unload_entry(hass: HomeAssistant, entry: TuyaConfigEntry) -> bool:
     """Unloading the Tuya platforms."""
-    await hass.config_entries.async_unload_platforms_or_raise(entry, PLATFORMS)
+    if hasattr(hass.config_entries, "async_unload_platforms_or_raise"):
+        await hass.config_entries.async_unload_platforms_or_raise(entry, PLATFORMS)
+    else:
+        unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+        if not unload_ok:
+            return False
+
     listener = entry.runtime_data
     manager = listener.manager
     if manager.mq is not None:
         manager.mq.stop()
     manager.remove_device_listener(listener)
+
+    return True
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: TuyaConfigEntry) -> None:
